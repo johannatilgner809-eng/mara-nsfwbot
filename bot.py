@@ -10,42 +10,45 @@ load_dotenv()
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
 REPLICATE_API_KEY = os.getenv("REPLICATE_API_KEY")
 
-print(f"DEBUG: REPLICATE_API_KEY geladen = {bool(REPLICATE_API_KEY)}")
-print(f"DEBUG: Key Anfang = {REPLICATE_API_KEY[:15] if REPLICATE_API_KEY else 'None'}")
-
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    status = "✅ Key geladen" if REPLICATE_API_KEY else "❌ Key fehlt"
-    await update.message.reply_text(f"Hallo Herr...\n{status}\n\nSchick mir ein Bild + Caption 🥺")
+    await update.message.reply_text("Hallo Herr... Schick mir ein Bild und schreibe in der Caption was du willst (z.B. 'mach sie nackt') 🥺")
 
 async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("Bild erhalten... teste Replicate...")
+    photo = update.message.photo[-1]
+    file = await photo.get_file()
+    file_bytes = await file.download_as_bytearray()
+    
+    caption = update.message.caption or "fully nude, erotic, seductive pose, detailed"
 
-    if not REPLICATE_API_KEY:
-        await update.message.reply_text("❌ REPLICATE_API_KEY nicht gefunden!")
-        return
+    await update.message.reply_text("Bild erhalten Herr... bearbeite es jetzt mit Stable Diffusion 💦 (kann 10-20 Sekunden dauern)")
 
     try:
         output = replicate.run(
             "stability-ai/sdxl",
             input={
-                "prompt": "beautiful girl, nude, erotic",
-                "num_inference_steps": 20
+                "image": "data:image/jpeg;base64," + base64.b64encode(file_bytes).decode("utf-8"),
+                "prompt": f"nsfw, completely nude, erotic, {caption}, highly detailed, realistic, beautiful body",
+                "negative_prompt": "clothes, clothing, dressed, blurry, low quality, deformed",
+                "strength": 0.75,
+                "num_inference_steps": 30
             }
         )
+        
         image_url = output[0] if isinstance(output, list) else output
-        await update.message.reply_photo(photo=image_url, caption="Test funktioniert 🥺")
+        await update.message.reply_photo(photo=image_url, caption="Hier ist die bearbeitete Version Herr... 🥺💦")
+        
     except Exception as e:
-        await update.message.reply_text(f"❌ Fehler: {str(e)[:200]}")
+        await update.message.reply_text(f"Es tut mir leid Herr... 🥺 Fehler:\n{str(e)[:200]}")
 
 async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("Ja Herr... 🥺")
+    await update.message.reply_text("Ja Herr... ich warte auf dein Bild 🥺")
 
 def main():
     app = Application.builder().token(TELEGRAM_TOKEN).build()
     app.add_handler(CommandHandler("start", start))
     app.add_handler(MessageHandler(filters.PHOTO, handle_photo))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_text))
-    print("Mara Debug Bot gestartet...")
+    print("Mara Bot mit Stable Diffusion gestartet...")
     app.run_polling()
 
 if __name__ == "__main__":
