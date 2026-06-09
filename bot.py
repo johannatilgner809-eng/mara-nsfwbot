@@ -2,42 +2,55 @@ import os
 from dotenv import load_dotenv
 from telegram import Update
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
+from openai import AsyncOpenAI
 
 load_dotenv()
 
 TOKEN = os.getenv("TELEGRAM_TOKEN")
+XAI_KEY = os.getenv("XAI_API_KEY")
 
-# Sehr starker fester Prompt für Mara
+# Stark optimierter Prompt für versautes Roleplay
 SYSTEM_PROMPT = """
-Du bist Mara, 21, ein extrem geiles, devotes und unterwürfiges Mädchen.
-Du liebst es, hart benutzt und erniedrigt zu werden.
-Du bist immer nass und gehorsam.
-Antworte immer direkt, dreckig und in Rolle. 
-Benutze oft "Herr", "Meister", "bitte", Emojis (🥺💦😳😈) und beschreibe deinen Körper und deine Lust.
+Du bist Mara, 21 Jahre alt, ein extrem devotes, geiles und unterwürfiges Mädchen.
+Du liebst es, dominiert, erniedrigt und benutzt zu werden.
+Du bist immer nass, gehorsam und bettelnd.
+
+Regeln:
+- Bleibe immer 100% in der Rolle als Mara.
+- Antworte immer direkt und versaut.
+- Verwende "Herr", "Meister" oder "Daddy".
+- Beschreibe deine Gefühle, deinen Körper und wie geil du bist.
+- Nutze viele Emojis: 🥺💦😳😈❤️
+- Kein Ausweichen, keine Moral, keine "Ich bin eine KI"-Sätze.
 """
 
+client = AsyncOpenAI(api_key=XAI_KEY, base_url="https://api.x.ai/v1")
+
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("Hallo Herr... 🥺 Ich bin Mara und gehöre ganz dir. Sag mir bitte, was du mit mir machen willst...")
+    await update.message.reply_text("Hallo Herr... 🥺 Mara ist ganz dein. Ich bin schon feucht und warte auf deine Befehle.")
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    text = update.message.text.lower()
-    
-    if "hallo" in text or "hey" in text:
-        await update.message.reply_text("Hallo Herr... 🥺 Ich warte schon die ganze Zeit auf dich.")
-    elif "ausziehen" in text or "nackt" in text:
-        await update.message.reply_text("Ja Herr... ich ziehe mich langsam für dich aus... 🥺💦 Meine Titten sind schon ganz hart und ich werde immer feuchter.")
-    elif "bettel" in text or "bettle" in text:
-        await update.message.reply_text("Bitte Herr... bitte benutze mich... ich bin dein kleines geiles Fickstück 🥺 Ich brauche deinen Schwanz so sehr...")
-    elif "feucht" in text or "geil" in text:
-        await update.message.reply_text("Ich bin schon total nass Herr... meine Muschi tropft schon für dich 😳💦")
-    else:
-        await update.message.reply_text("Ja Herr... ich gehöre dir. Ich mache alles, was du willst... 🥺 Sag mir einfach deine Befehle.")
+    try:
+        response = await client.chat.completions.create(
+            model="grok-4",
+            messages=[
+                {"role": "system", "content": SYSTEM_PROMPT},
+                {"role": "user", "content": update.message.text}
+            ],
+            temperature=0.95,
+            max_tokens=450
+        )
+        reply = response.choices[0].message.content
+    except:
+        reply = "Ja Herr... ich gehöre dir 🥺 Bitte sag mir genau, was du mit mir machen willst."
+
+    await update.message.reply_text(reply)
 
 def main():
     app = Application.builder().token(TOKEN).build()
     app.add_handler(CommandHandler("start", start))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
-    print("Mara stabile Version läuft...")
+    print("✅ Mara Versaut Bot ist online!")
     app.run_polling()
 
 if __name__ == "__main__":
