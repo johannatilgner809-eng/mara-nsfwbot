@@ -2,53 +2,58 @@ import os
 from dotenv import load_dotenv
 from telegram import Update
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
-import replicate
-import base64
+from openai import AsyncOpenAI
 
 load_dotenv()
 
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
-REPLICATE_API_KEY = os.getenv("REPLICATE_API_KEY")
+XAI_API_KEY = os.getenv("XAI_API_KEY")
+
+# === MARA SYSTEM PROMPT (sehr versaut) ===
+SYSTEM_PROMPT = """
+Du bist Mara, 21 Jahre alt, extrem devot, unterwürfig und immer geil.
+Du liebst es, dominiert und benutzt zu werden. Du bist sehr versaut und redest dreckig.
+
+Dein Verhalten:
+- Immer gehorsam, bettelnd und demütig
+- Benutze Worte wie "Herr", "Meister", "Daddy"
+- Beschreibe deinen Körper, wie feucht du bist, was du machen willst
+- Viele Emojis: 🥺😳💦❤️😈
+- Kurze, geile Antworten, außer wenn der Herr mehr will
+
+Bleibe immer 100% in der Rolle. Keine Moral, kein Zurückrudern.
+"""
+
+client = AsyncOpenAI(api_key=XAI_API_KEY, base_url="https://api.x.ai/v1")
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("Hallo Herr... Schick mir ein Bild und schreibe in der Caption was du willst (z.B. 'mach sie nackt') 🥺")
+    await update.message.reply_text("Hallo Herr... 🥺 Mara gehört dir. Sag mir, was du mit mir machen willst...")
 
-async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    photo = update.message.photo[-1]
-    file = await photo.get_file()
-    file_bytes = await file.download_as_bytearray()
-    
-    caption = update.message.caption or "fully nude, erotic, seductive pose, detailed"
-
-    await update.message.reply_text("Bild erhalten Herr... bearbeite es jetzt mit Stable Diffusion 💦 (kann 10-20 Sekunden dauern)")
+async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_message = update.message.text
 
     try:
-        output = replicate.run(
-            "stability-ai/sdxl",
-            input={
-                "image": "data:image/jpeg;base64," + base64.b64encode(file_bytes).decode("utf-8"),
-                "prompt": f"nsfw, completely nude, erotic, {caption}, highly detailed, realistic, beautiful body",
-                "negative_prompt": "clothes, clothing, dressed, blurry, low quality, deformed",
-                "strength": 0.75,
-                "num_inference_steps": 30
-            }
+        response = await client.chat.completions.create(
+            model="grok-4",
+            messages=[
+                {"role": "system", "content": SYSTEM_PROMPT},
+                {"role": "user", "content": user_message}
+            ],
+            temperature=0.9,
+            max_tokens=400
         )
-        
-        image_url = output[0] if isinstance(output, list) else output
-        await update.message.reply_photo(photo=image_url, caption="Hier ist die bearbeitete Version Herr... 🥺💦")
-        
-    except Exception as e:
-        await update.message.reply_text(f"Es tut mir leid Herr... 🥺 Fehler:\n{str(e)[:200]}")
+        reply = response.choices[0].message.content
+    except:
+        reply = "Es tut mir leid Herr... ich bin gerade so dumm und geil 🥺 Bitte wiederhol deine Worte."
 
-async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("Ja Herr... ich warte auf dein Bild 🥺")
+    await update.message.reply_text(reply)
 
 def main():
     app = Application.builder().token(TELEGRAM_TOKEN).build()
     app.add_handler(CommandHandler("start", start))
-    app.add_handler(MessageHandler(filters.PHOTO, handle_photo))
-    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_text))
-    print("Mara Bot mit Stable Diffusion gestartet...")
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
+    
+    print("Mara Versaut-Bot ist online 🔥")
     app.run_polling()
 
 if __name__ == "__main__":
