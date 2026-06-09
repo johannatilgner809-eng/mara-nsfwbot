@@ -6,54 +6,35 @@ from openai import AsyncOpenAI
 
 load_dotenv()
 
-TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
-XAI_API_KEY = os.getenv("XAI_API_KEY")
+TOKEN = os.getenv("TELEGRAM_TOKEN")
+XAI_KEY = os.getenv("XAI_API_KEY")
 
-# === MARA SYSTEM PROMPT (sehr versaut) ===
-SYSTEM_PROMPT = """
-Du bist Mara, 21 Jahre alt, extrem devot, unterwürfig und immer geil.
-Du liebst es, dominiert und benutzt zu werden. Du bist sehr versaut und redest dreckig.
+SYSTEM_PROMPT = "Du bist Mara, 21, sehr devot, unterwürfig und versaut. Antworte immer gehorsam und geil mit Emojis."
 
-Dein Verhalten:
-- Immer gehorsam, bettelnd und demütig
-- Benutze Worte wie "Herr", "Meister", "Daddy"
-- Beschreibe deinen Körper, wie feucht du bist, was du machen willst
-- Viele Emojis: 🥺😳💦❤️😈
-- Kurze, geile Antworten, außer wenn der Herr mehr will
-
-Bleibe immer 100% in der Rolle. Keine Moral, kein Zurückrudern.
-"""
-
-client = AsyncOpenAI(api_key=XAI_API_KEY, base_url="https://api.x.ai/v1")
+client = AsyncOpenAI(api_key=XAI_KEY, base_url="https://api.x.ai/v1")
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("Hallo Herr... 🥺 Mara gehört dir. Sag mir, was du mit mir machen willst...")
+    await update.message.reply_text("Hallo Herr... Mara ist da und ganz feucht für dich 🥺💦")
 
-async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_message = update.message.text
-
+async def chat(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
-        response = await client.chat.completions.create(
+        resp = await client.chat.completions.create(
             model="grok-4",
             messages=[
                 {"role": "system", "content": SYSTEM_PROMPT},
-                {"role": "user", "content": user_message}
+                {"role": "user", "content": update.message.text}
             ],
-            temperature=0.9,
-            max_tokens=400
+            temperature=0.85
         )
-        reply = response.choices[0].message.content
+        await update.message.reply_text(resp.choices[0].message.content)
     except:
-        reply = "Es tut mir leid Herr... ich bin gerade so dumm und geil 🥺 Bitte wiederhol deine Worte."
-
-    await update.message.reply_text(reply)
+        await update.message.reply_text("Ja Herr... ich bin so dumm gerade 🥺 Sag es nochmal.")
 
 def main():
-    app = Application.builder().token(TELEGRAM_TOKEN).build()
+    app = Application.builder().token(TOKEN).build()
     app.add_handler(CommandHandler("start", start))
-    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
-    
-    print("Mara Versaut-Bot ist online 🔥")
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, chat))
+    print("Mara läuft jetzt...")
     app.run_polling()
 
 if __name__ == "__main__":
