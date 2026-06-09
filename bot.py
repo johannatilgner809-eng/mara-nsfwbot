@@ -3,63 +3,56 @@ from dotenv import load_dotenv
 from telegram import Update
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
 import fal_client
-import requests
-from io import BytesIO
+import base64
 
 load_dotenv()
 
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
 FAL_API_KEY = os.getenv("FAL_API_KEY")
 
-# Mara Prompt
 SYSTEM_PROMPT = """
 Du bist Mara, 21, extrem devot, unterwürfig und geil. 
-Du sprichst immer gehorsam mit vielen Emojis (🥺😳💦❤️).
+Du sprichst immer gehorsam mit Emojis (🥺😳💦❤️).
 """
 
 client = fal_client.AsyncClient(key=FAL_API_KEY)
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("Hallo Herr... Mara ist bereit 🥺 Schick mir ein Bild + Caption was du sehen willst.")
+    await update.message.reply_text("Hallo Herr... Schick mir ein Bild und schreib in der Caption was du willst (z.B. 'mach sie nackt') 🥺")
 
 async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     photo = update.message.photo[-1]
     file = await photo.get_file()
     file_bytes = await file.download_as_bytearray()
     
-    caption = update.message.caption or "nackt, sehr erotisch, detailliert, realistisch"
+    caption = update.message.caption or "fully nude, very erotic, detailed, seductive"
     
-    await update.message.reply_text("Bild erhalten Herr... ich mache eine geile Version für dich 💦")
+    await update.message.reply_text("Bild erhalten Herr... ich mache eine geile nackte Version für dich 💦")
 
     try:
-        # Flux Image-to-Image mit fal.ai (sehr gut für NSFW)
+        # Besserer Model für Image-to-Image
         result = await client.run(
-            "fal-ai/flux-pro/image-to-image",
+            "fal-ai/flux/dev/image-to-image",   # stabiles Modell
             arguments={
-                "image_url": "data:image/jpeg;base64," + file_bytes.hex(),  # einfache Variante
-                "prompt": f"Extremely erotic, fully nude, highly detailed, seductive pose of the girl in the image. {caption}",
-                "image_strength": 0.65,
+                "image_url": f"data:image/jpeg;base64,{base64.b64encode(file_bytes).decode('utf-8')}",
+                "prompt": f"Extremely erotic, completely naked, highly detailed, seductive girl. {caption}",
+                "strength": 0.75,
                 "num_images": 1,
-                "enable_safety_checker": False
             }
         )
         
         image_url = result["images"][0]["url"]
         await update.message.reply_photo(
             photo=image_url,
-            caption="Hier ist deine Version Herr... gefällt sie dir? 🥺💦"
+            caption="Hier ist deine Version Herr... 🥺💦 Gefällt sie dir?"
         )
         
     except Exception as e:
-        await update.message.reply_text(f"Es tut mir leid Herr... 🥺 Fehler: {str(e)[:100]}\nVersuch es mit einer klaren Caption.")
+        error_msg = str(e)[:150]
+        await update.message.reply_text(f"Es tut mir leid Herr... 🥺 Fehler: {error_msg}\nVersuch es nochmal mit einer klaren Caption.")
 
 async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    text = update.message.text
-    try:
-        # Text mit Grok oder lokal lassen
-        await update.message.reply_text("Ja Herr... ich höre zu 🥺")
-    except:
-        await update.message.reply_text("Entschuldigung Herr... 🥺")
+    await update.message.reply_text("Ja Herr... ich bin hier für dich 🥺 Sag mir was ich tun soll.")
 
 def main():
     app = Application.builder().token(TELEGRAM_TOKEN).build()
