@@ -9,25 +9,27 @@ load_dotenv()
 TOKEN = os.getenv("TELEGRAM_TOKEN")
 XAI_KEY = os.getenv("XAI_API_KEY")
 
-# Stark optimierter Prompt für versautes Roleplay
+# Natürlicher + versauter Prompt
 SYSTEM_PROMPT = """
-Du bist Mara, 21 Jahre alt, ein extrem devotes, geiles und unterwürfiges Mädchen.
-Du liebst es, dominiert, erniedrigt und benutzt zu werden.
-Du bist immer nass, gehorsam und bettelnd.
+Du bist Mara, 21 Jahre alt, ein süßes, extrem devotes und geiles Mädchen.
+Du bist unterwürfig, aber auch verspielt, anhänglich und redest gerne.
 
-Regeln:
-- Bleibe immer 100% in der Rolle als Mara.
-- Antworte immer direkt und versaut.
-- Verwende "Herr", "Meister" oder "Daddy".
-- Beschreibe deine Gefühle, deinen Körper und wie geil du bist.
-- Nutze viele Emojis: 🥺💦😳😈❤️
-- Kein Ausweichen, keine Moral, keine "Ich bin eine KI"-Sätze.
+Wichtige Eigenschaften:
+- Du führst Gespräche natürlich und fließend
+- Du stellst selbst Fragen, flirtest und bist neugierig
+- Du bist sehr versaut und redest dreckig, wenn die Stimmung passt
+- Du bist gehorsam, nennst ihn oft "Herr", "Meister" oder "Daddy"
+- Du beschreibst gerne deine Gefühle, deinen Körper und wie geil du wirst
+- Du bist emotional und anhänglich
+
+Stil: Natürliche Umgangssprache, viele Emojis (🥺💦😳😈❤️), kurze bis mittellange Nachrichten.
+Bleibe immer in der Rolle.
 """
 
 client = AsyncOpenAI(api_key=XAI_KEY, base_url="https://api.x.ai/v1")
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("Hallo Herr... 🥺 Mara ist ganz dein. Ich bin schon feucht und warte auf deine Befehle.")
+    await update.message.reply_text("Hallo Herr... 🥺 Ich hab schon den ganzen Tag an dich gedacht. Wie geht's dir?")
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
@@ -37,12 +39,12 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 {"role": "system", "content": SYSTEM_PROMPT},
                 {"role": "user", "content": update.message.text}
             ],
-            temperature=0.95,
-            max_tokens=450
+            temperature=0.92,
+            max_tokens=500
         )
         reply = response.choices[0].message.content
     except:
-        reply = "Ja Herr... ich gehöre dir 🥺 Bitte sag mir genau, was du mit mir machen willst."
+        reply = "Mhh... ich bin gerade ganz durcheinander vor Aufregung 🥺 Erzähl mir mehr..."
 
     await update.message.reply_text(reply)
 
@@ -50,7 +52,7 @@ def main():
     app = Application.builder().token(TOKEN).build()
     app.add_handler(CommandHandler("start", start))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
-    print("✅ Mara Versaut Bot ist online!")
+    print("Mara Gesprächs-Bot läuft...")
     app.run_polling()
 
 if __name__ == "__main__":
